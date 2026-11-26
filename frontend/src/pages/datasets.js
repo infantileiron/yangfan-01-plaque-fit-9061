@@ -11,7 +11,8 @@ export async function datasetsPage(profile, account, id) {
   const active = items.find(item => item.id === id) || items[0];
   const detail = active && await api.dataset(active.id);
   const versionSelector = items.map(item => `<a class="version ${active?.id === item.id ? 'current' : ''}" href="#datasets/${item.id}">
-    <strong>${e(item.name)}</strong><span>${item.count} 行 · ${e(item.checksum.slice(0, 8))}</span></a>`).join('');
+    <strong>${e(item.name)}</strong><span>${item.count} 行 · ${e(item.checksum.slice(0, 8))}${
+      item.superseded_by ? ' · 已被新版替代' : ''}</span></a>`).join('');
   const intake = account.role === 'analyst' ? `<details class="intake" ${items.length ? '' : 'open'}>
     <summary>导入 CSV</summary>
     <form id="import-form">
@@ -25,8 +26,12 @@ export async function datasetsPage(profile, account, id) {
       detail ? exportButton('/datasets/' + detail.id + '/csv', 'input.csv', '下载原始数据') : '') +
       `<div class="board"><aside class="side"><h2>数据版本</h2>${versionSelector || '<p>尚无数据</p>'}${intake}</aside>
       <section class="work">${detail ? `<div class="work-head"><div><h2>${e(detail.name)}</h2>
-      <p class="muted">共 ${detail.count} 行 · 预览前 ${Math.min(detail.count, 18)} 行</p></div>
-      ${account.role === 'analyst' ? `<a class="button" href="#runs/${detail.id}">新建计算单</a>` : ''}</div>
+      <p class="muted">共 ${detail.count} 行 · 预览前 ${Math.min(detail.count, 18)} 行${
+        detail.superseded_by ? ' · <strong>该版本已被同批新版替代，其上预审单已失效</strong>' : ''}</p></div>
+      ${account.role === 'analyst' && !detail.superseded_by ? `<a class="button" href="#runs/${detail.id}">新建计算单</a>` : ''}</div>
+      ${detail.grouping_report ? `<div class="review-record"><strong>展品整组隔离</strong>
+        <p class="muted">${detail.grouping_report.exhibits} 个展品：训练 ${detail.grouping_report.train_exhibits} 组、留出 ${
+          detail.grouping_report.holdout_exhibits} 组；为消除同展品跨侧混入，调整 ${detail.grouping_report.moved_samples} 条纸样的分组。</p></div>` : ''}
       ${table(profile.columns, detail.rows.slice(0, 18))}` :
       empty('还没有可读样本', '分析员可上传符合字段要求的 CSV 文件。')}
 

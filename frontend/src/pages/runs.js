@@ -1,7 +1,7 @@
 import { api } from '../api/workspace.js';
 import { table } from '../components/common/table.js';
 import { heading, empty } from '../components/common/heading.js';
-import { status } from '../components/common/status.js';
+import { status, obsoleteBadge } from '../components/common/status.js';
 import { bindForm, notice } from '../hooks/forms.js';
 import { navigate } from '../router/routes.js';
 import { escapeHtml as e, timeText } from '../utils/format.js';
@@ -13,7 +13,7 @@ export async function runsPage(profile, account, id) {
   const form = canSubmit ? `<form id="run-form">
     <label>计算单名称<input name="label" maxlength="100" placeholder="例如本班复核" required></label>
     <label>数据版本<select name="dataset_id">${datasets.map(row =>
-      `<option value="${row.id}" ${row.id === id ? 'selected' : ''}>${e(row.name)} · ${row.count} 行</option>`).join('')}</select></label>
+      `<option value="${row.id}" ${row.id === id ? 'selected' : ''}${row.superseded_by ? ' disabled' : ''}>${e(row.name)} · ${row.count} 行${row.superseded_by ? '（已被新版替代）' : ''}</option>`).join('')}</select></label>
     <label>${e(parameter.label)}<input type="number" name="parameter" min="${parameter.min}" max="${parameter.max}"
       step="${parameter.step}" value="${parameter.default}" required></label>
     <p class="muted">${e(parameter.description)}</p><div class="form-error" data-error role="alert"></div>
@@ -27,7 +27,8 @@ export async function runsPage(profile, account, id) {
         {key:'label',label:'计算单'}, {key:'parameter',label:parameter.label}, {key:'status',label:'状态'},
         {key:'created_at',label:'提交时间'},
       ], runs, (run, column, value) => {
-        if (column.key === 'label') return `<a href="#results/${run.id}">${e(value)}</a>`;
+        if (column.key === 'label') return `<a href="#results/${run.id}">${e(value)}</a>${
+          run.auto_recompute ? ' <span class="status s-obsolete">自动重跑</span>' : ''}${obsoleteBadge(run.obsolete)}`;
         if (column.key === 'status') return status(value);
         return column.key === 'created_at' ? e(timeText(value)) : e(value);
       }) : empty('等待首个计算单', '选择数据和参数后提交计算，随后可以在此查看记录。')}

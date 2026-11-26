@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import JSON, ForeignKey, String, Text
+from sqlalchemy import JSON, Boolean, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.constants.workflow import Stage
@@ -18,6 +18,9 @@ class Run(Base):
     result: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     artifact: Mapped[str | None] = mapped_column(String(100))
     error: Mapped[str | None] = mapped_column(Text)
+    # 同批源数据出现新版本后，旧版本上的计算单整体失效，禁止再签发导出。
+    obsolete: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    auto_recompute: Mapped[bool] = mapped_column(Boolean, default=False)
     lease: Mapped[str | None] = mapped_column(String(36))
     attempts: Mapped[int] = mapped_column(default=0)
     started_at: Mapped[datetime | None]

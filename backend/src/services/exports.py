@@ -29,6 +29,7 @@ def signed_download(run_id):
         review = reviews.lookup(db, run_id)
         if review is None or review.decision != Decision.APPROVE.value:
             raise HTTPException(409, "复核员签发后才能下载交接单。")
+        # 已签发的旧交接单冻结在原计算结果上，即使源数据更新也仍可按原件查阅。
         selected = set(review.samples)
         rows = [
             {**row, "reviewer": review.reviewer, "review_note": review.note}

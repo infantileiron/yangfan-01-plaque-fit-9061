@@ -32,7 +32,9 @@ def submit(body, actor):
     if not control["min"] <= body.parameter <= control["max"]:
         raise HTTPException(422, f"「{control['label']}」超出允许范围。")
     with Session.begin() as db:
-        datasets.require(db, body.dataset_id)
+        dataset = datasets.require(db, body.dataset_id)
+        if dataset.superseded_by:
+            raise HTTPException(409, "该数据版本已被同批新版替代，请在最新版本上创建计算单。")
         run = Run(dataset_id=body.dataset_id, label=body.label, parameter=body.parameter, actor=actor)
         db.add(run)
         db.flush()

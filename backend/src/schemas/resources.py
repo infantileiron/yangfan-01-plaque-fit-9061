@@ -9,6 +9,8 @@ def dataset_view(dataset, include_rows=False):
     item = {
         "id": dataset.id, "name": dataset.name, "count": len(dataset.rows),
         "checksum": dataset.checksum, "author": dataset.author, "created_at": utc(dataset.created_at),
+        "batch_key": dataset.batch_key, "superseded_by": dataset.superseded_by,
+        "grouping_report": dataset.grouping_report,
     }
     if include_rows:
         item["rows"] = dataset.rows
@@ -19,6 +21,7 @@ def run_view(run, include_result=False):
     item = {
         "id": run.id, "dataset_id": run.dataset_id, "label": run.label, "parameter": run.parameter,
         "status": run.status, "error": run.error, "actor": run.actor,
+        "obsolete": run.obsolete, "auto_recompute": run.auto_recompute,
         "created_at": utc(run.created_at), "started_at": utc(run.started_at),
         "finished_at": utc(run.finished_at),
     }

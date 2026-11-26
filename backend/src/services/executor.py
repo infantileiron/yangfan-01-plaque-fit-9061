@@ -33,7 +33,7 @@ def claim():
             run.finished_at = utcnow()
             record(db, "worker", "run_failed", run.id)
         run = db.scalar(
-            select(Run).where(available, Run.attempts < MAX_ATTEMPTS)
+            select(Run).where(available, Run.attempts < MAX_ATTEMPTS, Run.obsolete.is_(False))
             .order_by(Run.created_at, Run.id).limit(1).with_for_update(skip_locked=True)
         )
         if run is None:

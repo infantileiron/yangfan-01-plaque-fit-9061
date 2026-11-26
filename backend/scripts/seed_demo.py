@@ -25,7 +25,7 @@ def seed():
             if db.get(Account, email) is None:
                 db.add(Account(email=email, role=role.value, password_hash=hash_password(PASSWORD)))
         db.flush()
-        item, created = save_in(db, PROFILE["seed_name"], rows, "seed", audit=False)
+        item, created, _ = save_in(db, PROFILE["seed_name"], rows, "seed", audit=False)
         return {
             "accounts": db.scalar(select(func.count()).select_from(Account)),
             "datasets": db.scalar(select(func.count()).select_from(Dataset)),

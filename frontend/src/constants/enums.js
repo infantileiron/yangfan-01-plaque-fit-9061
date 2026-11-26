@@ -3,7 +3,9 @@ export const stages = { queued: '排队中', running: '计算中', succeeded: '�
 export const decisions = { approve: '签发', hold: '暂缓' };
 export const auditActions = {
   dataset_imported: '导入数据',
+  dataset_superseded: '旧版失效',
   run_queued: '提交计算',
+  run_auto_recompute: '自动重跑',
   run_succeeded: '完成计算',
   run_failed: '计算失败',
   review_approve: '签发交接',

@@ -4,6 +4,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
 from .encoding import TargetStats
+from .grouping import apply_grouping
 
 
 def occupation(row):
@@ -28,6 +29,14 @@ def label_set(rows, group):
     return values
 
 
+def assert_group_isolation(training, holdout):
+    train_exhibits = {row["exhibit_id"] for row in training}
+    holdout_exhibits = {row["exhibit_id"] for row in holdout}
+    leaked = train_exhibits & holdout_exhibits
+    if leaked:
+        raise ValueError("同一展品的纸样不得同时进入训练和留出：" + "、".join(sorted(leaked)) + "。")
+
+
 def fit(training, labels, holdout, holdout_labels, stats=None):
     model = make_pipeline(StandardScaler(), LogisticRegression(C=1.8, max_iter=500, random_state=77))
     model.fit(features(training, stats, labels), labels)
@@ -35,7 +44,9 @@ def fit(training, labels, holdout, holdout_labels, stats=None):
     return model, float(brier_score_loss(holdout_labels, probabilities))
 
 
-def analyze(rows, parameter):
+def analyze(source_rows, parameter):
+    # 先按展品编号整组隔离，再进入任何拟合；待校纸样原样保留。
+    rows, grouping = apply_grouping(source_rows)
     training = [row for row in rows if row["split"] == "训练"]
     holdout = [row for row in rows if row["split"] == "留出"]
     candidates = [row for row in rows if row["split"] == "待校"]
@@ -44,6 +55,7 @@ def analyze(rows, parameter):
     if any(row["overflow"] is not None for row in candidates):
         raise ValueError("待校纸样的实测溢出列必须留空。")
     train_labels, holdout_labels = label_set(training, "训练"), label_set(holdout, "留出")
+    assert_group_isolation(training, holdout)
     stats = TargetStats(training, train_labels)
     base, base_brier = fit(training, train_labels, holdout, holdout_labels)
     encoded, encoded_brier = fit(training, train_labels, holdout, holdout_labels, stats)
@@ -74,8 +86,14 @@ def analyze(rows, parameter):
             {"label": "目标编码 Brier", "value": round(encoded_brier, 4)},
             {"label": "本批择优", "value": "目标编码" if use_encoded else "几何基准"},
             {"label": "留出纸样", "value": len(holdout)},
+            {"label": "训练展品 / 留出展品", "value": f"{grouping['train_exhibits']} / {grouping['holdout_exhibits']}"},
+            {"label": "整组隔离调整纸样", "value": grouping["moved_samples"]},
         ],
+        "grouping": grouping,
         "rows": outputs,
-        "notes": ["Brier 越小代表本次留出的概率误差越低。留出用于择优，无独立测试估计。",
-                  "占位率是排版几何估计。换行、连字与字体替换仍须在 1:1 实际纸样上复核。"],
+        "notes": [
+            "纸样按展品编号整组隔离：同一展品的改版纸样只进入训练或留出一侧，目标编码的留一统计也整组扣除本展品，避免预审分数虚高。",
+            "Brier 越小代表本次留出的概率误差越低。留出用于择优，无独立测试估计。",
+            "占位率是排版几何估计。换行、连字与字体替换仍须在 1:1 实际纸样上复核。",
+        ],
     }

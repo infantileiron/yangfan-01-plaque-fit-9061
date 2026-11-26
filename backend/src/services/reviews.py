@@ -24,6 +24,8 @@ def sign(run_id, body, reviewer):
         run = runs.require(db, run_id)
         if run.status != Stage.SUCCEEDED.value:
             raise HTTPException(409, "计算成功后才能签审。")
+        if run.obsolete:
+            raise HTTPException(409, "同批源数据已有新版本，本预审已失效；请在最新版本重算通过后再签发。已签发的旧交接单仍可按原件查阅。")
         if lookup(db, run_id) is not None:
             raise HTTPException(409, "此计算单已有交接决定。")
         valid = {row["sample_id"] for row in run.result["rows"]}

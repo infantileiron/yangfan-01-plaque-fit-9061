@@ -1,7 +1,7 @@
 import { api } from '../api/workspace.js';
 import { resultChart } from '../components/chart.js';
 import { empty, exportButton, heading } from '../components/common/heading.js';
-import { status } from '../components/common/status.js';
+import { status, obsoleteBadge } from '../components/common/status.js';
 import { table } from '../components/common/table.js';
 import { escapeHtml as e, shortId, timeText } from '../utils/format.js';
 
@@ -16,7 +16,9 @@ export async function resultsPage(profile, account, id) {
   const actions = run.result ? exportButton('/runs/' + run.id + '/csv', 'analysis.csv', '导出计算结果') : '';
   const intro = heading(profile.labels.results, profile.labels.action, actions) +
     `<div class="result-pick"><label>计算单<select id="choose-result">${selector}</select></label>
-    ${status(run.status)}<span class="muted">${e(timeText(run.created_at))}</span></div>`;
+    ${status(run.status)}${obsoleteBadge(run.obsolete)}<span class="muted">${e(timeText(run.created_at))}</span></div>`;
+  const obsoleteNotice = run.obsolete ?
+    '<div class="empty"><h2>预审已失效</h2><p>同批源数据已有新版本，本计算单不能再签发导出；已签发的旧交接单仍可在拼版交接页按原件查阅。请以最新版本的重算结果为准。</p></div>' : '';
   const mount = root => {
     root.querySelector('#choose-result').onchange = event => { location.hash = '#results/' + event.target.value; };
   };
@@ -31,7 +33,7 @@ export async function resultsPage(profile, account, id) {
   }
   const result = run.result;
   return {
-    html: intro + `<div class="board results-board"><aside class="side">
+    html: intro + obsoleteNotice + `<div class="board results-board"><aside class="side">
       <h2>本次口径</h2><dl class="meta"><dt>${e(profile.parameter.label)}</dt><dd>${e(run.parameter)}</dd>
       <dt>数据版本</dt><dd><a href="#datasets/${run.dataset_id}">${shortId(run.dataset_id)}</a></dd>
       </dl><p class="muted">${e(profile.downstream)}</p>
